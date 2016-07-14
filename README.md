@@ -13,9 +13,9 @@ MIT License (https://opensource.org/licenses/MIT)
 
 ## Updates
 
-v1.0 
-    - Initial Commit: Setting up the process flow diagram using JointJS
-v1.2016.07.14   
-    - Updated graph so that it dynamically expands as user moves nodes
-    - Updated the license
-    * MAJOR UPDATE: Attached dom element to each port so we could eventually introduce html code. Each port is a vector graphic, therefore an extra node attached to each port was necessary. 
+### v1.0 
+* Initial Commit: Setting up the process flow diagram using JointJS
+### v1.2016.07.14   
+* Updated graph so that it dynamically expands as user moves nodes
+* Updated the license
+* MAJOR UPDATE: Attached dom element to each port so we could eventually introduce html code. Each port is a vector graphic, therefore an extra node attached to each port was necessary. 
