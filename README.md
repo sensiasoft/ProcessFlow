@@ -15,6 +15,7 @@ MIT License (https://opensource.org/licenses/MIT)
 
 ### v1.0 
 * Initial Commit: Setting up the process flow diagram using JointJS
+
 ### v1.2016.07.14   
 * Updated graph so that it dynamically expands as user moves nodes
 * Updated the license
