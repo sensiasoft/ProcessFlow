@@ -35,3 +35,11 @@ MIT License (https://opensource.org/licenses/MIT)
 * Wrote code to re-organize nodes that were subjected to improper placement by the Directed Graph (The DG only organizes as a function of the whole graph... not as a function of which nodes are contained in which groups.)
 * Wrote code to retroactively modify node colors based on their type (input,output,parameter)
 * Implemented eventing that will trigger a "waterfall" effect determined by the chain... and, as a result, change values to other nodes
+
+### v1.2016.07.26   
+* Removed "waterfall" effect
+* Added ability to import from file as well as a URL
+* Add POST function to post changes - only post being done is updating the users input values
+* Updated CSS to account for embedding the graph in nested elements
+* Added test functionality to home page
+* Next version will be able to update the XML values and output to server.. as well as contain user-specific changes
