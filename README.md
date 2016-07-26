@@ -43,3 +43,4 @@ MIT License (https://opensource.org/licenses/MIT)
 * Updated CSS to account for embedding the graph in nested elements
 * Added test functionality to home page
 * Next version will be able to update the XML values and output to server.. as well as contain user-specific changes
+* Began writing generic API for simple functions
