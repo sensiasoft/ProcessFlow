@@ -36,6 +36,8 @@ var Graph = function (_GLOBAL) {
     this.linkJustRemoved = false;
     this.linkHovering = null;
     this.componentHovering = null;
+    this.portHovering = null;
+    this.portPos = null;
     this.dragStartPosition;
     
     this.ios = {inputs: [],outputs:[]};
@@ -234,8 +236,40 @@ var Graph = function (_GLOBAL) {
         console.log(result);
     }
 
-
-
+    scope.Menu = {};
+    this.Menu.Open = function(){
+        $(".ui-dialog-content").dialog("close");
+        var xml = scope._rewrite_HTML();
+        if(!xml) return;
+        var html = '<div id="graph-editor" title="Graph Properties">';
+        html = html + '<div id="graph-XML" style="height:700px;overflow:auto;border-style: solid;">'+xml+'</div>';
+        html = html + '</div>';
+        $('body').append(html);
+        $('#graph-editor').dialog();
+        $('#graph-editor').dialog( "option", "height", 800 );
+        $('#graph-editor').dialog( "option", "width", 800 );
+        $('.ui-dialog :button').blur();
+        $('#graph-editor').on('dialogclose', function(event) {
+            $('#graph-editor').remove();
+        });
+        $('#graph-XML').resizable();
+    }
+    this.Menu.Close = function(){
+        $('#graph-editor').hide();
+        $('#graph-editor').remove();
+        
+    }
+    
+    
+    this._rewrite_HTML = function(){
+        if(!scope.json) return;
+        var xml = '';
+        xml = json2xml(JSON.stringify(jQuery.extend(true,{},scope.json)));
+        xml = formatXml(xml);
+        xml = xml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g, '&nbsp;').replace(/\n/g,'<br />');
+        if(($('#graph-editor')).length != 0 ) $('#graph-XML').html(xml);
+        return xml;
+    }
 
     this._goodConnectionQ = function (source_component, target_component, source_port, target_port) {
         if (source_component == target_component) return false;
@@ -295,8 +329,14 @@ var Graph = function (_GLOBAL) {
                 if(scope.linkHovering!=null){
                     var component = scope.linkHovering.split(':')[0].split('.')[0];
                     scope.components[component].links[scope.linkHovering].Menu.Open();
+                }else if(scope.portHovering!=null){
+                    scope.components[scope.componentHovering].Tree.Open(scope.portHovering);
                 }else if(scope.componentHovering!=null){
                     scope.components[scope.componentHovering].Menu.Open();
+                }else{
+                    //Must be on the overall graph
+                    console.log('CNTRL DOWN')
+                    scope.Menu.Open();
                 }
             }
         });
@@ -347,6 +387,8 @@ var Graph = function (_GLOBAL) {
 //                }
             }
         );
+        
+        
         scope.paper.on('cell:pointerup',
             function (cellView, evt, x, y) {
                 if (scope.linkJustRemoved) return;

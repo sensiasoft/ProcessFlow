@@ -103,6 +103,7 @@ var SensorML = function(_GLOBAL){
         //console.log(XML)
         var json = xml2json(XML);
         scope.json = json;
+        scope._GLOBAL.Graph.json = json;
         console.log(json);
         for(var type in json){
             scope.process = type;
@@ -143,17 +144,6 @@ var SensorML = function(_GLOBAL){
         document.getElementById('file_browser').click()
     }
     this._get_link = function(link,component,the_json){
-        
-        console.log(link);
-        
-        if(link=='http://www.sensorML.com/2.0/mvco/sensor/MVCO_Workhorse_1200.xml') link='_XML/MVCO_Workhorse_1200.xml';
-        if(link=='http://www.sensorML.com/2.0/mvco/sensor/RDI_Workhorse_1200.xml') link='_XML/RDI_Workhorse_1200.xml';
-        if(link=='http://www.sensorML.com/2.0/mvco/sensor/Velocity_QC_Chain.xml') link='_XML/Velocity_QC_Chain.xml';
-        if(link=='http://www.sensorML.com/2.0/mvco/sensor/Pressure_QC_Chain.xml') link='_XML/Pressure_QC_Chain.xml';
-        
-        
-        
-        
         $.ajax({
             async: false,
             type: 'GET',

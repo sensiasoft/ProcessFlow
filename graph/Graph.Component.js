@@ -42,6 +42,7 @@ var Component = function (_GLOBAL, params, isProcess, json) {
     }
     this.links = {}
     this.color = '#2ECC71';
+    this.position = null;
     this.json = json;
 
 
@@ -190,6 +191,7 @@ var Component = function (_GLOBAL, params, isProcess, json) {
     this.Modify.Component_Color = function (color) {
         scope.component.attr('rect/fill', color);
         scope.color = color;
+        scope._rewrite_HTML();
     }
     this.Get_Ports = function (type) {
         var types = ['inputs', 'outputs', 'parameters'];
@@ -255,12 +257,8 @@ var Component = function (_GLOBAL, params, isProcess, json) {
     this.Menu.Open = function(){
         if(scope.params.name.indexOf('-IN')>-1 || scope.params.name.indexOf('-OUT')>-1) return;
         $(".ui-dialog-content").dialog("close");
-        var xml = '';
-        if(scope.json){
-            xml = json2xml(JSON.stringify(jQuery.extend(true,{},scope.json)));
-            xml = formatXml(xml);
-            xml = xml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g, '&nbsp;').replace(/\n/g,'<br />');
-        }
+        var xml = scope._rewrite_HTML();
+        if(!xml) return;
         var html = '<div id="component-editor" title="'+scope.params.name+' Properties">';
         html = html + '<b>Color:</b>&nbsp;&nbsp;';
         html = html + '<input type="text" id="component-color"></input>';
@@ -472,9 +470,87 @@ var Component = function (_GLOBAL, params, isProcess, json) {
             scope.Menu.Open();
         })
     }
+    this.Tree = {};
+    this.Tree.Open = function(port){
+        alert('This has yet to be defined...');
+        return;
+        var component = scope.params.name;
+        console.log('Open Tree for '+port);
+        console.log('Position: '+JSON.stringify(scope._GLOBAL.portPos));
+        var pos = scope._GLOBAL.portPos;
+        
+        var html = '<div id="tree" style="height:100%;width:100%;position:absolute;top:0;left:0;"></div>'
+        html = html + '</div>';
+        
+        
+//        $(".ui-dialog-content").dialog("close");
+//        var html = '<div id="port-tree-dialog" title="Connect Nested Ports">';
+//        html = html + '<div id="tree" style="height:700px;overflow:auto;border-style: solid;"></div>'
+//        html = html + '</div>';
+        $('body').append(html);
+        Tree(pos);
+//        $( '#tree' ).load( "tree.html",function(d){
+//            console.log(d)
+//           // setTimeout(function(){
+//            
+//                var node1_offset = $($('#tree g g')[0]).offset();
+//                var svg_offset = $('#tree svg').offset();
+//                var top = svg_offset.top-(node1_offset.top-svg_offset.top);
+//                var left = svg_offset.left-(node1_offset.left-svg_offset.left);
+//                console.log(node1_offset);
+//                console.log(svg_offset);
+//                var new_offset = {top:top,left:left};
+//                console.log(new_offset);
+//                $('#tree svg').offset(new_offset);
+//            //},2000);
+//            
+//        });
+//        
+//        $('#port-tree-dialog').dialog();
+//        $('#port-tree-dialog').dialog( "option", "height", 800 );
+//        $('#port-tree-dialog').dialog( "option", "width", 800 );
+//        $('#port-tree-dialog').on('dialogclose', function(event) {
+//            $('#port-tree-dialog').remove();
+//        });
+    }
     
-    
-    
+    this._rewrite_HTML = function(){
+        if(!scope.json) return;
+        if(!scope.json.UserSettings){
+            scope.json.UserSettings = {
+                __prefix: 'sml'
+            }
+        }
+        //COLOR
+        if(!scope.json.UserSettings.color){
+            scope.json.UserSettings.color = {
+                __prefix: 'sml',
+                _value: scope.color
+            }
+        }else{
+            scope.json.UserSettings.color._value = scope.color
+        }
+        //POSITION
+        if(scope.position != null){
+            if(!scope.json.UserSettings.position){
+                scope.json.UserSettings.position = {
+                    __prefix: 'sml',
+                    _value: scope.position
+                }
+            }else{
+                scope.json.UserSettings.position._value = scope.position;
+            }
+        }
+        
+        var xml = '';
+        if(scope.json){
+            xml = json2xml(JSON.stringify(jQuery.extend(true,{},scope.json)));
+            xml = formatXml(xml);
+            xml = xml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g, '&nbsp;').replace(/\n/g,'<br />');
+        }
+        if(($('#component-editor')).length != 0 ) $('#component-XML').html(xml);
+        return xml;
+    }
     
     this._linkExistsQ = function(link_name){
         if(typeof scope.links[link_name] !== 'undefined') return true;
@@ -503,15 +579,38 @@ var Component = function (_GLOBAL, params, isProcess, json) {
         //if json does not exist, it must be created from scratch...
         if(scope.json) console.log(scope.json);
         if(!scope.json) console.log('JSON does not exist... must create from scratch');
+        scope._rewrite_HTML();
     }
     this._linkRemoved = function(name){
         console.log('JSON UPDATE (REMOVING LINK): '+name);
+        scope._rewrite_HTML();
     }
     this._portAdded = function(name){
         console.log('JSON UPDATE (ADDING PORT): '+name);
+        setTimeout(function(){
+            var elements = $('.port-body');
+            for(var el=0; el<elements.length; el++){
+                if($(elements[el]).context.nextSibling.textContent == name){
+                    $(elements[el]).hover(
+                    function(e){
+                        console.log(e);
+                        var port_name = e.target.nextSibling.textContent;
+                        if(scope._GLOBAL.portHovering==null) {
+                            scope._GLOBAL.portHovering = port_name;
+                            scope._GLOBAL.portPos = {left: e.pageX, top: e.pageY};
+                        }
+                    },function(e){
+                        scope._GLOBAL.portHovering = null;
+                    })
+                }
+            }
+            scope._rewrite_HTML();
+        },500);
+        
     }
     this._portRemoved = function(name){
         console.log('JSON UPDATE (REMOVING PORT): '+name);
+        scope._rewrite_HTML();
     }
     this._componentAdded = function(){
         component._componentName = params.name;
@@ -523,6 +622,8 @@ var Component = function (_GLOBAL, params, isProcess, json) {
     }
     this._componentMoved = function(pos){
         console.log('JSON UPDATE (MOVING): '+scope.params.name+' ==> '+pos.x+', '+pos.y);
+        scope.position = pos.x+','+pos.y;
+        scope._rewrite_HTML();
     }
     
     
@@ -553,7 +654,12 @@ var Component = function (_GLOBAL, params, isProcess, json) {
         params.y = 100;
         labelY = -0.3;
     }
-    
+    var stroke = 'black';
+    var fill = '#2ECC71';
+    if(scope.params.name.indexOf('-IN')>-1 || scope.params.name.indexOf('-OUT')>-1){
+        stroke = 'transparent';
+        fill = 'transparent';
+    }
     var component = new joint.shapes.devs.Model({
         position: {
             x: params.x,
@@ -572,7 +678,8 @@ var Component = function (_GLOBAL, params, isProcess, json) {
                 'ref-y': labelY
             },
             rect: {
-                fill: '#2ECC71'
+                fill: fill,
+                stroke: stroke
             },
             '.inPorts circle': {
                 fill: '#00FF00',

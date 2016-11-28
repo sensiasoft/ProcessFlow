@@ -30,18 +30,15 @@ var Link = function (link_model,_GLOBAL,json) {
     this.Color = function(color){
         scope.link.attr('.connection/stroke', color);
         scope.color = color;
+        //only need to modify the XML on the screen... it will be correct next time it opens
+        scope._rewrite_HTML();
     }
     
     this.Menu = {};
     this.Menu.Open = function(){
         $(".ui-dialog-content").dialog("close");
-        var xml = '';
-        if(scope.json){
-            xml = json2xml(JSON.stringify(jQuery.extend(true,{},scope.json)));
-            xml = formatXml(xml);
-            xml = xml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g, '&nbsp;').replace(/\n/g,'<br />');
-        }
-        
+        var xml = scope._rewrite_HTML();
+        if(!xml) return;
         var html = '<div id="link-editor" title="Link Properties">';
         html = html + '<b>Color:</b>&nbsp;&nbsp;';
         html = html + '<input type="text" id="link-color"></input>';
@@ -82,6 +79,31 @@ var Link = function (link_model,_GLOBAL,json) {
         $('#link-editor').hide();
         $('#link-editor').remove();
         
+    }
+    
+    this._rewrite_HTML = function(){
+        if(!scope.json) return;
+        if(!scope.json.UserSettings){
+            scope.json.UserSettings = {
+                __prefix: 'sml'
+            }
+        }
+        if(!scope.json.UserSettings.color){
+            scope.json.UserSettings.color = {
+                __prefix: 'sml',
+                _value: scope.color
+            }
+        }else{
+            scope.json.UserSettings.color._value = scope.color
+        }
+        var xml = '';
+        if(scope.json){
+            xml = json2xml(JSON.stringify(jQuery.extend(true,{},scope.json)));
+            xml = formatXml(xml);
+            xml = xml.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g, '&nbsp;').replace(/\n/g,'<br />');
+        }
+        if(($('#link-editor')).length != 0 ) $('#link-XML').html(xml);
+        return xml;
     }
     
 //    link_model.set('router', {
