@@ -19,7 +19,7 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
 */
-var Port = function (_parent, name, type, css_link) {
+var Port = function (_parent, name, type, css_link, from_leftovers) {
     var scope = this;
     this._parent = _parent;
     this._GLOBAL = _parent._GLOBAL;
@@ -29,13 +29,34 @@ var Port = function (_parent, name, type, css_link) {
         parameters: '#FFFFFF'
     }
     this.name = name;
+    this.type = type;
     this.id = 'port:'+type+'.'+name;
     this.css_link = css_link;
     this.type = type;
     this.color = colors[type];
     
     
-    
+    this.Stroke = {}
+    this.Stroke.Color = function(color){
+        var id = scope._parent.component.id;
+        var port_type = 'outPorts';
+        if(scope.type=='inputs' || scope.type=='parameters') port_type = 'inPorts';
+        var circle = $('[model-id="'+id+'"] .'+port_type+' .port circle[port="'+scope.name+'"]')
+        circle.attr('stroke',color);
+        if(!scope._parent.port_color_assignments[scope.name]) scope._parent.port_color_assignments[scope.name] = {type:scope.type};
+        //if(!scope._parent.port_color_assignments[scope.name].circle) scope._parent.port_color_assignments[scope.name].circle = circle;
+        scope._parent.port_color_assignments[scope.name].color = color;
+    }
+    this.Stroke.Thickness = function(thickness){
+        var id = scope._parent.component.id;
+        var port_type = 'outPorts';
+        if(scope.type=='inputs' || scope.type=='parameters') port_type = 'inPorts';
+        var circle = $('[model-id="'+id+'"] .'+port_type+' .port circle[port="'+scope.name+'"]')
+        circle.attr('stroke-width',thickness);
+        if(!scope._parent.port_color_assignments[scope.name]) scope._parent.port_color_assignments[scope.name] = {type:scope.type};
+        //if(!scope._parent.port_color_assignments[scope.name].circle) scope._parent.port_color_assignments[scope.name].circle = circle;
+        scope._parent.port_color_assignments[scope.name].thickness = thickness;
+    }
     this.Color = function(color){
         scope._parent.component.attr(scope.css_link + ' circle/fill', color);
         scope.color = color;
@@ -48,5 +69,18 @@ var Port = function (_parent, name, type, css_link) {
     scope._parent.component.attr(css_link + ' circle/fill', colors[type]);
     
     if(type=='parameters') scope._parent.component.attr(css_link + ' text/transform', 'rotate(-90)');
+    
+    if(from_leftovers){
+        setTimeout(function(){
+            var id = scope._parent.component.id;
+            var port_type = 'outPorts';
+            if(scope.type=='inputs' || scope.type=='parameters') port_type = 'inPorts';
+            var circle = $('[model-id="'+id+'"] .'+port_type+' .port circle[port="'+scope.name+'"]')
+            circle.attr('stroke','#FF9933');
+            circle.attr('stroke-width','0.25em');
+        },500);
+    }
+    
+    
     
 }

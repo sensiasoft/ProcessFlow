@@ -23,13 +23,14 @@ var Graph = function (_GLOBAL) {
     //INITIALIZE VARIABLES
     var scope = this;
     this._GLOBAL = _GLOBAL;
+    this.Interop = new Interop();
     this.process;
     this.process_object = null;
-    this.div = 'paper-create';
+    this.div = null;
     this.graph = null;
     this.directed_graph = null;
     this.paper = null;
-    this.component_graph = null;
+    //this.component_graph = null;
     this.mousedown = false;
     this.currentMousePos = {x:0,y:0};
     this.linkJustAdded = false;
@@ -55,7 +56,14 @@ var Graph = function (_GLOBAL) {
         links: [],
         ios: {}
     } //these are links that defined components and ports that don't exist
-
+    
+    this.binder = {};
+    
+    
+    
+    
+    
+    
     this.Group = {};
     this.Group.New = function (name) {
         if (typeof name === 'undefined' || name == '') return 'Please supply a valid name.';
@@ -64,13 +72,14 @@ var Graph = function (_GLOBAL) {
     }
     
     this.Component = {};
-    this.Component.New = function (name, ports, isProcess,json) {
+    this.Component.New = function (name, ports, isProcess,json,from_leftovers) {
         if (typeof name === 'undefined' || name == '') return 'Please supply a valid name.';
         if (typeof scope.components[name] !== 'undefined') return name + ' has already been used.';
         var properties = {
             x: (window.innerWidth - 500) * Math.random() + 250,
             y: (window.innerHeight - 500) * Math.random() + 250,
-            name: name
+            name: name,
+            from_leftovers: from_leftovers
         };
         
         if (typeof ports === 'object') {
@@ -99,9 +108,20 @@ var Graph = function (_GLOBAL) {
 
         return component;
     }
-    this.Component.Add_Port = function (component, type, name) {
-        if (typeof scope.components[component] === 'undefined') return;
-        scope.components[component].Add.Port(type, name);
+    this.Component.Add_Port = function (component, type, name, from_leftovers) {
+        if(component==scope.process){
+            if(type=='outputs') component = component+'-OUT';
+            if(type=='inputs') component = component+'-IN';
+        }
+        if (typeof scope.components[component] === 'undefined') return;// console.log(component+' is UNDEFINED\n'+type);
+//        if(from_leftovers) console.log(component+': '+name+' is from Leftovers');
+//        if(!from_leftovers) console.log(component+': '+name+' is NOT from Leftovers');
+        scope.components[component].Add.Port(type, name, from_leftovers);
+    }
+    this.Component.Add_DataRecord = function (component, port, name) {
+        if(component==scope.process) component = component+'-OUT';
+        if (typeof scope.components[component] === 'undefined') return;// console.log(component+' is UNDEFINED\n'+type);
+        scope.components[component].Add.DataRecord(port, name);
     }
     this.Component.Add_Link = function (from, from_type, to, to_type,properties) {
         var from_comp = from.split('.')[0];
@@ -123,9 +143,9 @@ var Graph = function (_GLOBAL) {
 //            if(to_type=='outputs') to_comp = to_comp+'-OUT';
 //        }
         
-        
-        if(scope.components[from_comp] && !scope.components[from_comp].ports[from_port]) scope.Component.Add_Port(from_comp,from_type,from_port);
-        if(scope.components[to_comp] && !scope.components[to_comp].ports[to_port]) scope.Component.Add_Port(to_comp,to_type,to_port);
+        //The ports should have already been added by now..... I think ???????????? This is the whole basis for determining if they were generated from the connections
+        if(scope.components[from_comp] && !scope.components[from_comp].ports[from_port]) scope.Component.Add_Port(from_comp,from_type,from_port, true);
+        if(scope.components[to_comp] && !scope.components[to_comp].ports[to_port]) scope.Component.Add_Port(to_comp,to_type,to_port,true);
         
         
         var good = true;
@@ -164,17 +184,17 @@ var Graph = function (_GLOBAL) {
         for (var component in leftovers.components) {
             if(component == scope.process) continue;
             //console.log(leftovers.components[component]);
-            scope.Component.New(component, leftovers.components[component]);
-            scope.components[component].Modify.Component_Color('#FF0000');
+            var json;
+            scope.Component.New(component, leftovers.components[component],json,false,true);
+            scope.components[component].Modify.Component_Color('#FF9933');
         }
-        var properties = {
-            color: '#FF0000'
-        }
+//        var properties = {
+//            color: '#FF9933'
+//        }
+        //Don't think there's a need to color the links anything other than blue.. they're not being created by anything except the original XML
         for (var i = 0; i < leftovers.links.length; i++) {
             var link_obj = leftovers.links[i];
-            if(link_obj.from == scope.process) console.log('From is aggregate')
-            if(link_obj.from == scope.process) console.log('To is aggregate')
-            scope.Component.Add_Link(link_obj.from, link_obj.from_type, link_obj.to, link_obj.to_type,properties);
+            scope.Component.Add_Link(link_obj.from, link_obj.from_type, link_obj.to, link_obj.to_type/*,properties*/);
             
         }
         if(callback) callback();
@@ -233,7 +253,6 @@ var Graph = function (_GLOBAL) {
                 bottom: 10
             }
         });
-        console.log(result);
     }
 
     scope.Menu = {};
@@ -260,6 +279,10 @@ var Graph = function (_GLOBAL) {
         
     }
     
+    this._finished_loading = function(){
+        
+        
+    }
     
     this._rewrite_HTML = function(){
         if(!scope.json) return;
@@ -281,230 +304,8 @@ var Graph = function (_GLOBAL) {
 
     //INIT
     $(document).ready(function () {
-        scope.graph = new joint.dia.Graph;
-        scope.directed_graph = new joint.dia.Graph;
-        scope.paper = new joint.dia.Paper({
-            el: $('#paper-create'),
-            width: window.innerWidth * 0.99,
-            height: window.innerHeight * 0.99,
-            gridSize: 1,
-            model: scope.graph,
-            snapLinks: true,
-//            embeddingMode: true,
-//            validateEmbedding: function(childView, parentView) {
-//
-//                return parentView.model instanceof joint.shapes.devs.Coupled;
-//            },
-//
-//            validateConnection: function(sourceView, sourceMagnet, targetView, targetMagnet) {
-//
-//                return sourceMagnet != targetMagnet;
-//            }
-        });
-
-        var paper = scope.paper;
-        paper.on('blank:pointerdown',
-            function(event, x, y) {
-                scope.dragStartPosition = { x: x, y: y};
-            }
-        );
-        paper.on('cell:pointerup blank:pointerup', function(cellView, x, y) {
-            delete scope.dragStartPosition;
-        });
-        $("#paper-create").mousemove(function(event) {
-            if(scope.dragStartPosition) paper.setOrigin(event.offsetX - scope.dragStartPosition.x, event.offsetY - scope.dragStartPosition.y);
-        });
-
-        scope.graph.on('change:source change:target', function (link) {
-            if (link.get('source').id && link.get('target').id) {
-                // both ends of the link are connected.
-                scope.linkJustAdded = true;
-                setTimeout(function () {
-                    scope.linkJustAdded = false;
-                }, 200)
-            }
-        });
-        $(document).keydown(function(e) {
-            if (e.ctrlKey) {
-                if(scope.linkHovering!=null){
-                    var component = scope.linkHovering.split(':')[0].split('.')[0];
-                    scope.components[component].links[scope.linkHovering].Menu.Open();
-                }else if(scope.portHovering!=null){
-                    scope.components[scope.componentHovering].Tree.Open(scope.portHovering);
-                }else if(scope.componentHovering!=null){
-                    scope.components[scope.componentHovering].Menu.Open();
-                }else{
-                    //Must be on the overall graph
-                    console.log('CNTRL DOWN')
-                    scope.Menu.Open();
-                }
-            }
-        });
-        $(document).keyup(function(e) {
-            if(scope._GLOBAL.Menu.coloring) scope._GLOBAL.Menu.Init();
-//            if(scope.linkHovering != null){
-//                var component = scope.linkHovering.split(':')[0].split('.')[0];
-//                scope.components[component].links[scope.linkHovering].Menu.Close();
-//            }
-//            scope.linkHovering = null;
-            
-            
-//            if(scope.linkHovering!=null){
-//                console.log('CONTROL RELEASED FROM: '+scope.linkHovering);
-//                var component = scope.linkHovering.split(':')[0].split('.')[0];
-//                console.log('I am coloring: '+scope._GLOBAL.Menu.coloring);
-//                if(scope._GLOBAL.Menu.coloring) scope._GLOBAL.Menu.Init();
-//                scope.linkHovering = null;
-//            }
-        });
-        scope.paper.on('cell:mouseover',
-            function (cellView, evt, x, y) {
-                if (typeof cellView.sourceView !== 'undefined') { //link
-                    var link_name = scope.maps.links[cellView.model.id];
-                    var source_component = link_name.split(':')[0].split('.')[0];
-                    var source_port = link_name.split(':')[0].split('.')[1];
-                    var target_component = link_name.split(':')[1].split('.')[0];
-                    var target_port = link_name.split(':')[1].split('.')[1];
-                    scope.linkHovering = link_name;
-                }else{//it's a component
-                    var component = cellView.model.attributes.attrs['.label'].text;
-                    scope.componentHovering = component;
-                }
-            }
-        );
-        scope.paper.on('cell:mouseout',
-            function (cellView, evt, x, y) {
-                scope.linkHovering=null;
-                scope.componentHovering=null;
-//                if (typeof cellView.sourceView !== 'undefined') { //link
-//                    var link_name = scope.maps.links[cellView.model.id];
-//                    var source_component = link_name.split(':')[0].split('.')[0];
-//                    if(scope.linkHovering != null){
-//                        var component = scope.linkHovering.split(':')[0].split('.')[0];
-//                        scope.components[source_component].links[scope.linkHovering].Menu.Close();
-//                    }
-//                    scope.linkHovering = null;
-//                }
-            }
-        );
         
-        
-        scope.paper.on('cell:pointerup',
-            function (cellView, evt, x, y) {
-                if (scope.linkJustRemoved) return;
-
-                //NOTE: when the pointer creates a link, it cannot access the node below it... this will only ever fire components and links
-                if (typeof cellView.sourceView !== 'undefined') { //link
-                    var source_component = cellView.sourceView.model.attributes.attrs['.label'].text;
-                    if (cellView.targetView == null) {
-                        cellView.remove();
-                        return;
-                    }
-                    var target_component = cellView.targetView.model.attributes.attrs['.label'].text;
-                    //the port does not exist if the link already exists... only port selectors, which are maps to css functions... huge flaw for jointjs. needs work-around.
-                    var source_port = cellView.model.get('source').port;
-                    var target_port = cellView.model.get('target').port;
-                    
-                    if (!scope._goodConnectionQ(source_component, target_component, source_port, target_port)) {
-                        if (scope.linkJustAdded) cellView.remove();
-                        return;
-                    }
-                    
-                    if(scope.maps.links[cellView.model.id]){ //link already mapped
-                        scope._GLOBAL.Menu.Component(source_component);
-                        return;
-                    }
-                    var link_name = source_component + '.' + source_port + ':' + target_component + '.' + target_port;
-                    console.log('Link: ' + source_component + '.' + source_port + ' ---> ' + target_component + '.' + target_port);
-                    //console.log('Link: ' + source_component + '.' + source_port + ' ---> ' + target_component + '.' + target_port);
-                    var link_name = source_component + '.' + source_port + ':' + target_component + '.' + target_port;
-                    cellView.model.set('router', {name: 'metro'});
-                    cellView.model.set('connector', {name: 'rounded'});
-                    var new_link = new Link(cellView.model,scope);
-                    new_link.Color('#FF0000');
-                    scope.components[source_component].links[link_name] = new_link;
-                    scope.components[target_component].links[link_name] = new_link;
-                    scope._GLOBAL.Menu.selected = null;
-                    scope._GLOBAL.Menu.Component(source_component);
-                    scope.maps.links[cellView.model.id] = link_name;
-                    scope.Directed_Graph();
-                    //only need to perform _linkAdded from one component
-                    scope.components[source_component]._linkAdded(link_name);
-                } else {
-                    var component = cellView.model.attributes.attrs['.label'].text;
-                    //scope.Component.Select(component);
-                }
-
-
-            }
-        );
-
-        scope.graph.on('remove', function (cellView, collection, opt) {
-            if (cellView.isLink()) {
-                // a link was removed  (cell.id contains the ID of the removed link)
-                scope.linkJustRemoved = true;
-                setTimeout(function () {
-                    scope.linkJustRemoved = false;
-                }, 200);
-                var link_name = scope.maps.links[cellView.id];
-                if (typeof link_name === 'undefined') return;
-                var from = link_name.split(':')[0].split('.')[0];
-                var to = link_name.split(':')[1].split('.')[0];
-                console.log(from);
-                console.log(to);
-                delete scope.components[from].links[link_name];
-                delete scope.components[to].links[link_name];
-                scope._GLOBAL.Menu.selected = null;
-                scope._GLOBAL.Menu.Component(from);
-                scope.Directed_Graph();
-                //only need to perform _linkRemoved from one component
-                scope.components[from]._linkRemoved(link_name);
-            } else {
-                //scope.component_graph.removeCells([cellView]);
-            }
-        });
-        
-        
-        
-        scope.graph.on('change:position', function (cell, newPosition, opt) {
-            if (opt.skipParentHandler) return;
-            if (cell.get('embeds') && cell.get('embeds').length) cell.set('originalPosition', cell.get('position'));
-            var parentId = cell.get('parent');
-            if(scope.components[cell._componentName]) scope.components[cell._componentName]._componentMoved(newPosition);//update the json
-            if (!parentId) return;
-            
-            var parent = scope.graph.getCell(parentId);
-            var parentBbox = parent.getBBox();
-            if (!parent.get('originalPosition')) parent.set('originalPosition', parent.get('position'));
-            if (!parent.get('originalSize')) parent.set('originalSize', parent.get('size'));
-            var originalPosition = parent.get('originalPosition');
-            var originalSize = parent.get('originalSize');
-            var newX = originalPosition.x;
-            var newY = originalPosition.y;
-            var newCornerX = originalPosition.x + originalSize.width;
-            var newCornerY = originalPosition.y + originalSize.height;
-            _.each(parent.getEmbeddedCells(), function (child) {
-                var childBbox = child.getBBox();
-                if (childBbox.x < newX) newX = childBbox.x;
-                if (childBbox.y < newY) newY = childBbox.y;
-                if (childBbox.corner().x > newCornerX) newCornerX = childBbox.corner().x;
-                if (childBbox.corner().y > newCornerY) newCornerY = childBbox.corner().y;
-            });
-            parent.set({
-                position: {
-                    x: newX,
-                    y: newY
-                },
-                size: {
-                    width: newCornerX - newX,
-                    height: newCornerY - newY
-                }
-            }, {
-                skipParentHandler: true
-            });
-            
-        });
-        
+        Create_Paper(scope,'paper-main');
         
         
         

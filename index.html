@@ -9,9 +9,8 @@
     <link rel="stylesheet" type="text/css" href="css/spectrum.css" />
     <link rel="stylesheet" type="text/css" href="_external/topbar/css/default.css" />
     <link rel="stylesheet" type="text/css" href="_external/topbar/css/component.css" />
-    <link rel="stylesheet" type="text/css" href="css/tree.css" />
-    
-    
+
+
     <script src="prototypes.js"></script>
     <script src='libs/underscore-min.js'></script>
     <script src='libs/dat.gui.js'></script>
@@ -27,9 +26,10 @@
     <script src='libs/jointjs.directedgraph.js'></script>
     <script src='libs/spectrum.js'></script>
     <script src='libs/d3.v3.js'></script>
-<!--    <script src='libs/d3.layout.js'></script>-->
+    <!--    <script src='libs/d3.layout.js'></script>-->
 
     <script src="graph/Graph.js"></script>
+    <script src="graph/Graph.Paper_Creator.js"></script>
     <script src="graph/Graph_API.js"></script>
     <script src="graph/Graph.Group.js"></script>
     <script src="graph/Graph.Component.js"></script>
@@ -37,32 +37,35 @@
     <script src="graph/Graph.Link.js"></script>
     <script src="graph/Graph.SensorML.js"></script>
     <script src="graph/Graph.Menu.js"></script>
-    
+    <script src="graph/Graph.Interop.js"></script>
+
     <script src="_external/topbar/js/modernizr.custom.js"></script>
     <script src="_external/topbar/js/cbpHorizontalSlideOutMenu.min.js"></script>
 
-    <script src="flare.js"></script>
-    <script src="miserables.js"></script>
-    <script src="Tree.js"></script>
 </head>
 
 <body>
     <input id="file_browser" type="file" style="display:none" />
     <div id="topbar"></div>
-    <div id="paper-create"></div>
-<!--    <div id="sidebar"></div>-->
-    
-
-    
-    <!--    <img src="http://www.sensorml.com/sensorML-2.0/examples/images/ScaleAndClip.gif"></img>-->
+<!--    <img id="main_menu" src="_external/topbar/images/menu.png" style="width:50px;height:50px;position:absolute; right:20px;top:4px;z-index:9999;cursor:pointer;" />-->
+    <div id="tooltip"></div>
+<!--    <div id="paper-create"></div>-->
 </body>
 
 <script>
-        $( "#topbar" ).load( "topbar.html");
-        var API = new Graph_API();
-        //$( "#sidebar" ).load( "sidebar.html" );
-       
-        $( document ).tooltip();
+    $("#topbar").load("topbar.html");
+    var API = new Graph_API();
+    $(document).tooltip();
+    $('#main_menu').on('click',function(){
+        API.Graph.Interop.Open_Window();
+    });
+    setTimeout(function(){
+        API.SensorML.XML.Import_Link('https://themcwilly.github.io/data_files/test.txt');
+    },2000);
+    
+    
+    
+    
 </script>
 
 <script>

@@ -20,12 +20,12 @@
 							<li>
 								<a href="#">Components</a>
 								<ul class="cbp-hssubmenu">
+									<li><a><img id="add" src="_external/topbar/images/plus.png" /><span>Generic Component</span></a></li>
 									<li><a><img id="MVCO_Workhorse" src="_external/topbar/images/MVCO_Workhorse.png" /><span>MVCO_Workhorse</span></a></li>
 									<li><a><img src="_external/topbar/images/2.png" /><span>Fine Spirit</span></a></li>
 									<li><a><img src="_external/topbar/images/3.png" /><span>Heavenly Ale</span></a></li>
 									<li><a><img src="_external/topbar/images/4.png" /><span>Juicy Lemonade</span></a></li>
 									<li><a><img src="_external/topbar/images/5.png" /><span>Wise Whiskey</span></a></li>
-									<li><a><img src="_external/topbar/images/6.png" /><span>Sweet Rum</span></a></li>
 								</ul>
 							</li>
 							<li>
@@ -60,7 +60,39 @@
 		</div>
 		
 		<script>
+            
 			var components_menu_actions = {
+                add: function(){
+                    $(".ui-dialog-content").dialog("close");
+                    var html = '<div id="component-add-dialog" title="Add Component">';
+                    html = html + '<b>Name:</b><br>';
+                    html = html + '<input type="text" id="component-name"></input><br><br>';
+                    html = html + '<button id="component-add">Add Component</button>';
+                    html = html + '<button id="cancel">Cancel</button>';
+                    html = html + '</div>';
+                    $('body').append(html);
+
+                    $('#component-add-dialog').dialog();
+                    $('#component-name').button();
+                    $('#component-add').button();
+                    $('#cancel').button();
+
+                    $('#component-add-dialog').on('dialogclose', function (event) {
+                        $('#component-add-dialog').remove();
+                    });
+                    $('#component-add').on('click', function () {
+                        var name = $("#component-name").val();
+                        var result = API.Graph.Component.New(name);
+                        if(typeof result === 'string') alertUser(result);
+                        $('#component-add-dialog').hide();
+                        $('#component-add-dialog').remove();
+                    })
+                    $('#cancel').on('click', function () {
+                        $('#component-add-dialog').hide();
+                        $('#component-add-dialog').remove();
+                    });
+                    
+                },
                 MVCO_Workhorse: function(){
                     var result = API.Graph.Component.New('MVCO_Workhorse', {
                         inputs: ['seaWaterPressure', 'seaWaterTemperature','volumetricBackscatter','particleMotion','temperature','tilt','heading'],
@@ -70,11 +102,11 @@
                     if(typeof result === 'string') alertUser(result);
                 }
             }
-            var menu = new cbpHorizontalSlideOutMenu( document.getElementById( 'cbp-hsmenu-wrapper' ) );
-            $('.cbp-hsmenu-wrapper img').on('click',function(e){
-                var id = e.currentTarget.id;
-                if(components_menu_actions[id]) components_menu_actions[id]();
-            })
+//            var menu = new cbpHorizontalSlideOutMenu( document.getElementById( 'cbp-hsmenu-wrapper' ) );
+//            $('.cbp-hsmenu-wrapper img').on('click',function(e){
+//                var id = e.currentTarget.id;
+//                if(components_menu_actions[id]) components_menu_actions[id]();
+//            })
 		</script>
 	</body>
 </html>

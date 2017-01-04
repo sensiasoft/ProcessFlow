@@ -3,6 +3,17 @@ body {
     height: 100%;
     overflow: hidden;
 }
+#tooltip{
+    display: none;
+    position: absolute;
+    cursor: pointer;
+    left: 100px;
+    top: 50px;
+    border: solid 1px #eee;
+    background-color: #ffffdd;
+    padding: 10px;
+    z-index: 1000;
+}
 /* elements */
 
 /*
@@ -80,4 +91,3 @@ body {
     text-decoration: underline;
 }
 */
-

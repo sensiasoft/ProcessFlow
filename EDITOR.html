@@ -1,0 +1,24 @@
+<html>
+<meta charset="utf-8">
+
+<head>
+    <script src='libs/jquery.min.js'></script>
+    <script src="graph/Graph.Interop.js"></script>
+
+</head>
+
+<body>
+    <button id="open" value="Open Process Flow">Open Process Flow</button>
+    <h1>The following is being edited by the graph:</h1>
+    <div id="editing"></div>
+</body>
+
+<script>
+    $('#open').on('click',function(){
+        var interop = new Interop();
+        interop.Open_Window();
+    });
+    
+</script>
+
+</html>

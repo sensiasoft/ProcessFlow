@@ -19,6 +19,49 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
 */
+if (!Object.prototype.watch) {
+	Object.defineProperty(Object.prototype, "watch", {
+		  enumerable: false
+		, configurable: true
+		, writable: false
+		, value: function (prop, handler) {
+			var
+			  oldval = this[prop]
+			, newval = oldval
+			, getter = function () {
+				return newval;
+			}
+			, setter = function (val) {
+				oldval = newval;
+				return newval = handler.call(this, prop, oldval, val);
+			}
+			;
+			
+			if (delete this[prop]) { // can't watch constants
+				Object.defineProperty(this, prop, {
+					  get: getter
+					, set: setter
+					, enumerable: true
+					, configurable: true
+				});
+			}
+		}
+	});
+}
+
+// object.unwatch
+if (!Object.prototype.unwatch) {
+	Object.defineProperty(Object.prototype, "unwatch", {
+		  enumerable: false
+		, configurable: true
+		, writable: false
+		, value: function (prop) {
+			var val = this[prop];
+			delete this[prop]; // remove accessors
+			this[prop] = val;
+		}
+	});
+}
 var x2js = new X2JS();
 var xml2json = function (xml_string) {
     return x2js.xml_str2json(xml_string);
@@ -100,7 +143,6 @@ var SensorML = function(_GLOBAL){
         });
     }
     this.XML.Read = function (XML) {
-        //console.log(XML)
         var json = xml2json(XML);
         scope.json = json;
         scope._GLOBAL.Graph.json = json;
@@ -115,6 +157,7 @@ var SensorML = function(_GLOBAL){
         scope._GLOBAL.Graph.Component.LeftOvers(function(){
             console.log('Finished...');
             scope._GLOBAL.Graph.Directed_Graph();
+            scope._GLOBAL.Graph._finished_loading();
         });
 //        scope._GLOBAL.Graph.Directed_Graph();
     }
@@ -153,16 +196,18 @@ var SensorML = function(_GLOBAL){
                 var json = xml2json(XML);
                 if(json.PhysicalSystem) scope._JSONparser.GeneralProcess(json.PhysicalSystem, component);
                 if(json.AggregateProcess) scope._JSONparser.GeneralProcess(json.AggregateProcess,component);
-                //delete non-necessary information and back-fill with shallow copied JSON
-                for(var key in the_json){
-                    if(key!='__prefix' && key!='_name') delete the_json[key];
-                }
-                if(the_json && json.PhysicalSystem) the_json.PhysicalSystem = json.PhysicalSystem;
-                if(the_json && json.AggregateProcess) the_json.AggregateProcess = json.AggregateProcess;
+//                //delete non-necessary information and back-fill with shallow copied JSON
+//                for(var key in the_json){
+//                    if(key!='__prefix' && key!='_name') delete the_json[key];
+//                }
+//                if(the_json && json.PhysicalSystem) the_json.PhysicalSystem = json.PhysicalSystem;
+//                if(the_json && json.PhysicalSystem) console.log(link);
+//                if(the_json && json.PhysicalSystem) console.log(json);
+//                if(the_json && json.AggregateProcess) the_json.AggregateProcess = json.AggregateProcess;
             },
             error: function(){
                 console.log('The link "'+link+'" was not available.');
-                //if(callback) callback();
+                scope._JSONparser.GeneralProcess(the_json, component);
             }
         });
     }
@@ -212,12 +257,38 @@ var SensorML = function(_GLOBAL){
             if(typeof json.push === 'undefined'){
                 if(json._name && typeof component !== 'string') scope._GLOBAL.Graph.Component.Add_Port(scope.process,'outputs',json._name); //THIS IS A PARENT OUTPUT
                 if(json._name && typeof component === 'string') scope._GLOBAL.Graph.Component.Add_Port(component,'outputs',json._name);
+                if(json._name && typeof component !== 'string' && json.DataRecord) scope._JSONparser.DataRecord(json.DataRecord,scope.process,json._name); //THIS IS A PARENT OUTPUT
+                if(json._name && typeof component === 'string' && json.DataRecord) scope._JSONparser.DataRecord(json.DataRecord,component,json._name);
             }else{
                 for(var i=0; i<json.length; i++){
+//                    console.log('~~~~~~~~~~~~~ OUTPUT ~~~~~~~~~~~~~~');
+//                    console.log(scope.process+', '+json[i]._name);
                     if(json[i]._name && typeof component !== 'string') scope._GLOBAL.Graph.Component.Add_Port(scope.process,'outputs',json[i]._name); //THIS IS A PARENT OUPUT
                     if(json[i]._name && typeof component === 'string') scope._GLOBAL.Graph.Component.Add_Port(component,'outputs',json[i]._name);
+                    if(json[i]._name && typeof component !== 'string' && json[i].DataRecord) scope._JSONparser.DataRecord(json[i].DataRecord,scope.process,json[i]._name); //THIS IS A PARENT OUTPUT
+                    if(json[i]._name && typeof component === 'string' && json[i].DataRecord) scope._JSONparser.DataRecord(json[i].DataRecord,component,json[i]._name);
                 }
             }
+        },
+        DataRecord: function(json,component,port){
+            //console.log(component+', '+port);
+            if(typeof json.push === 'undefined'){
+                if(json.field) scope._JSONparser.field(json.field,component,port);
+            }else{
+                for(var i=0; i<json.length; i++){
+                    if(json[i].field) scope._JSONparser.field(json[i].field,component,port);
+                }
+            }
+        },
+        field: function(json,component,port){
+            if(typeof json.push === 'undefined'){
+                if(json._name) scope._GLOBAL.Graph.Component.Add_DataRecord(component,port,json._name);
+            }else{
+                for(var i=0; i<json.length; i++){
+                    if(json[i]._name) scope._GLOBAL.Graph.Component.Add_DataRecord(component,port,json[i]._name);
+                }
+            }
+            
         },
         parameters: function(json,component){
             if(json.ParameterList) scope._JSONparser.ParameterList(json.ParameterList,component);
@@ -299,10 +370,6 @@ var SensorML = function(_GLOBAL){
             if(!from_port) console.log('!!!! WARNING !!!! "From" Port undefined: '+json.source._ref);
             if(!to_port) console.log('!!!! WARNING !!!! "To" Port undefined: '+json.destination._ref);
             
-//            console.log('**********');
-//            console.log(from);
-//            console.log(to);
-
             if(from_comp==scope.process){
                 if(from_type=='inputs') from_comp = from_comp+'-IN';
                 if(from_type=='outputs') from_comp = from_comp+'-OUT';
@@ -312,10 +379,12 @@ var SensorML = function(_GLOBAL){
                 if(to_type=='outputs') to_comp = to_comp+'-OUT';
             }
             
-            
-            
             var from = from_comp+'.'+from_port;
             var to = to_comp+'.'+to_port;
+            
+//            console.log('**********');
+//            console.log(from);
+//            console.log(to);
 
             scope._GLOBAL.Graph.Component.Add_Link(from,from_type,to,to_type,{json:json});
             

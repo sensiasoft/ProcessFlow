@@ -754,7 +754,7 @@
              * attributes can influence layout.
              */
             function buildLayoutGraph(inputGraph) {
-                console.log(inputGraph);
+                //console.log(inputGraph);
                 var g = new Graph({
                     multigraph: true,
                     compound: true 
